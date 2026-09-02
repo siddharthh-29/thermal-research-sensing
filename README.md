@@ -73,7 +73,7 @@ graph TD
                 Infer --> Check{Face Detected?}
                 
                 Check -- Yes --> Found[Extract Box & Landmarks]
-                Check -- No --> NotFound[Set coordinates to NaN (Target Bug)]
+                Check -- No --> NotFound["Set coordinates to NaN (Target Bug)"]
                 
                 Found --> WriteCSV[Write row to CSV]
                 NotFound --> WriteCSV
