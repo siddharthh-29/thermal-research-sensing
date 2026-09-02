@@ -63,6 +63,13 @@ The pipeline consists of six stages, implemented as numbered scripts:
 
 ---
 
+## Script 7: ROI Extraction & Ground-Truth Synchronization Flow
+
+![ROI Signal Visualization Flow](docs/images/step_7_execution.png)
+
+
+---
+
 ## Dataset: SIMULATOR STUDY 1
 
 The [SIM1 dataset](https://osf.io/c42cn/) (Taamneh et al., 2017) provides:
