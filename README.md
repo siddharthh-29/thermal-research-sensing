@@ -50,6 +50,12 @@ The pipeline consists of six stages, implemented as numbered scripts:
 
 ---
 
+## Step 5 Execution Flow
+
+============================================================================= mmslab_sim1_05_detect_face_landmarks.py EXECUTION FLOW ============================================================================= [ START: main() ] | v [ Load YOLOv5 Model to GPU/CPU ] | v +=== OUTER LOOP: For each SUBJECT (e.g., T016, T017...) ====================+ | | | +=== INNER LOOP: For each TASK (e.g., PD, ND, CD...) ===================+ | | | | | | | [ Calculate Start/Stop Frames ] (Based on TASK_SEGMENTS time window) | | | | | | | | | v | | | | [ Map Raw Binary .dat File to Memory ] (Avoids loading whole file) | | | | | | | | | v | | | | [ Open Output CSV ] (Creates <SUBJECT>-<TASK>-face.csv) | | | | | | | | | +--- FRAME LOOP: From Frame i0 to i1 -------------------------------+ | | | | | | | | | | | 1. Read single raw thermal frame from memory | | | | | | | | | | | | | v | | | | | | 2. Convert to 8-bit BGR Image | | | | | | (Clip extremes -> Normalize -> Apply Inferno Colormap) | | | | | | | | | | | | | v | | | | | | 3. Prepare for Neural Network | | | | | | (Scale to 800x800 -> Convert to PyTorch Tensor) | | | | | | | | | | | | | v | | | | | | 4. YOLOv5 Inference | | | | | | (Run model -> Apply Non-Max Suppression) | | | | | | | | | | | | | v | | | | | | 5. Face Detected Successfully? | | | | | | / \ | | | | | | [YES] [NO] | | | | | | | | | | | | | | v v | | | | | | Extract Box & 5 Landmarks Set all spatial coordinates | | | | | | Scale back to 640x512 to NaN (Blank) | | | | | | Select highest confidence << THIS IS YOUR TARGET BUG >> | | | | | | \ / | | | | | | \ / | | | | | | v v | | | | | | 6. Write single row of data to CSV file | | | | | | | | | | | | 7. (Optional) Draw boxes on image and save debug .jpg | | | | | +-------------------------------------------------------------------+ | | | | | | | | | v | | | | [ Close CSV and Release Memory ] | | | +=======================================================================+ | +===========================================================================+ | v [ DONE: Exit Script ]
+
+---
+
 ## Dataset: SIMULATOR STUDY 1
 
 The [SIM1 dataset](https://osf.io/c42cn/) (Taamneh et al., 2017) provides:
