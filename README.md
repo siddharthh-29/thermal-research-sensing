@@ -86,6 +86,44 @@ graph TD
 ```
 ---
 
+##Script 6: Sync GT from ROI CSV
+```mermaid
+graph TD
+    Start([Start: main]) --> Discover[Discover Subjects & Tasks]
+    Discover --> OuterSubj
+    
+    subgraph "Outer Loop: For each SUBJECT"
+        OuterSubj[Select Subject] --> InnerTask
+        
+        subgraph "Inner Loop: For each TASK"
+            InnerTask[Select Task] --> CheckPaths{Files Exist?}
+            
+            CheckPaths -- No --> Skip[Skip Task/Log Status]
+            CheckPaths -- Yes --> InitProc[Load Data & Memmap .dat File]
+            
+            InitProc --> LoadAnn[Load Face CSV & Apply EMA Landmark Smoothing]
+            LoadAnn --> TimeGrid[Calculate 30Hz Output Time Grid]
+            
+            TimeGrid --> FrameLoop
+            
+            subgraph "Frame Loop: Process Frames in Segment"
+                FrameLoop[Read Frame & Facial ROIs] --> Extract[Extract Thermal Values via roi_extract_by_name]
+                Extract --> SaveNative[Store Native 7.5Hz ROI Traces]
+            end
+            
+            SaveNative --> Upsample[Upsample ROI Traces to 30Hz via Cubic Spline]
+            Upsample --> LoadGT[Load PEDA and PP Contact Ground Truth]
+            LoadGT --> SyncGT[Resample & Synchronize GT to 30Hz Grid]
+            SyncGT --> ExportCSV[Write Synced CSV to StructuredStudyData]
+            ExportCSV --> GenPlot{Plot Mode Enabled?}
+            
+            GenPlot -- Yes --> Plot[Generate & Save QC Plots]
+            GenPlot -- No --> FinishTask
+            Plot --> FinishTask[Log Success & Summary Result]
+        end
+    end
+```
+
 ## Dataset: SIMULATOR STUDY 1
 
 The [SIM1 dataset](https://osf.io/c42cn/) (Taamneh et al., 2017) provides:
