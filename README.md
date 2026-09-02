@@ -50,10 +50,40 @@ The pipeline consists of six stages, implemented as numbered scripts:
 
 ---
 
-## Step 5 Execution Flow
+## Script 5: YOLOv5 Execution Flow
 
-============================================================================= mmslab_sim1_05_detect_face_landmarks.py EXECUTION FLOW ============================================================================= [ START: main() ] | v [ Load YOLOv5 Model to GPU/CPU ] | v +=== OUTER LOOP: For each SUBJECT (e.g., T016, T017...) ====================+ | | | +=== INNER LOOP: For each TASK (e.g., PD, ND, CD...) ===================+ | | | | | | | [ Calculate Start/Stop Frames ] (Based on TASK_SEGMENTS time window) | | | | | | | | | v | | | | [ Map Raw Binary .dat File to Memory ] (Avoids loading whole file) | | | | | | | | | v | | | | [ Open Output CSV ] (Creates <SUBJECT>-<TASK>-face.csv) | | | | | | | | | +--- FRAME LOOP: From Frame i0 to i1 -------------------------------+ | | | | | | | | | | | 1. Read single raw thermal frame from memory | | | | | | | | | | | | | v | | | | | | 2. Convert to 8-bit BGR Image | | | | | | (Clip extremes -> Normalize -> Apply Inferno Colormap) | | | | | | | | | | | | | v | | | | | | 3. Prepare for Neural Network | | | | | | (Scale to 800x800 -> Convert to PyTorch Tensor) | | | | | | | | | | | | | v | | | | | | 4. YOLOv5 Inference | | | | | | (Run model -> Apply Non-Max Suppression) | | | | | | | | | | | | | v | | | | | | 5. Face Detected Successfully? | | | | | | / \ | | | | | | [YES] [NO] | | | | | | | | | | | | | | v v | | | | | | Extract Box & 5 Landmarks Set all spatial coordinates | | | | | | Scale back to 640x512 to NaN (Blank) | | | | | | Select highest confidence << THIS IS YOUR TARGET BUG >> | | | | | | \ / | | | | | | \ / | | | | | | v v | | | | | | 6. Write single row of data to CSV file | | | | | | | | | | | | 7. (Optional) Draw boxes on image and save debug .jpg | | | | | +-------------------------------------------------------------------+ | | | | | | | | | v | | | | [ Close CSV and Release Memory ] | | | +=======================================================================+ | +===========================================================================+ | v [ DONE: Exit Script ]
-
+```mermaid
+graph TD
+    Start([Start: main]) --> Load[Load YOLOv5 Model to GPU/CPU]
+    Load --> OuterLoop
+    
+    subgraph "Outer Loop: For each SUBJECT"
+        OuterLoop[Select Subject] --> InnerLoop
+        
+        subgraph "Inner Loop: For each TASK"
+            InnerLoop[Select Task] --> Calc[Calculate Start/Stop Frames]
+            Calc --> MemMap[Map Raw Binary .dat File to Memory]
+            MemMap --> OpenCSV[Open Output CSV]
+            OpenCSV --> FrameLoop
+            
+            subgraph "Frame Loop"
+                FrameLoop[Read raw thermal frame] --> Convert[Convert to 8-bit BGR Image]
+                Convert --> Prepare[Scale & Convert to PyTorch Tensor]
+                Prepare --> Infer[YOLOv5 Inference]
+                Infer --> Check{Face Detected?}
+                
+                Check -- Yes --> Found[Extract Box & Landmarks]
+                Check -- No --> NotFound[Set coordinates to NaN (Target Bug)]
+                
+                Found --> WriteCSV[Write row to CSV]
+                NotFound --> WriteCSV
+            end
+            
+            WriteCSV -.-> |Next Frame| FrameLoop
+            WriteCSV --> |Done| Close[Close CSV]
+        end
+    end
+```
 ---
 
 ## Dataset: SIMULATOR STUDY 1
