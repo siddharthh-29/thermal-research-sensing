@@ -52,77 +52,16 @@ The pipeline consists of six stages, implemented as numbered scripts:
 
 ## Script 5: YOLOv5 Execution Flow
 
-```mermaid
-graph TD
-    Start([Start: main]) --> Load[Load YOLOv5 Model to GPU/CPU]
-    Load --> OuterLoop
-    
-    subgraph "Outer Loop: For each SUBJECT"
-        OuterLoop[Select Subject] --> InnerLoop
-        
-        subgraph "Inner Loop: For each TASK"
-            InnerLoop[Select Task] --> Calc[Calculate Start/Stop Frames]
-            Calc --> MemMap[Map Raw Binary .dat File to Memory]
-            MemMap --> OpenCSV[Open Output CSV]
-            OpenCSV --> FrameLoop
-            
-            subgraph "Frame Loop"
-                FrameLoop[Read raw thermal frame] --> Convert[Convert to 8-bit BGR Image]
-                Convert --> Prepare[Scale & Convert to PyTorch Tensor]
-                Prepare --> Infer[YOLOv5 Inference]
-                Infer --> Check{Face Detected?}
-                
-                Check -- Yes --> Found[Extract Box & Landmarks]
-                Check -- No --> NotFound["Set coordinates to NaN (Target Bug)"]
-                
-                Found --> WriteCSV[Write row to CSV]
-                NotFound --> WriteCSV
-            end
-            
-            WriteCSV -.-> |Next Frame| FrameLoop
-            WriteCSV --> |Done| Close[Close CSV]
-        end
-    end
-```
+
+![YOLOv5 Execution Flow](docs/images/step_5_execution.png)
+
 ---
 
-##Script 6: Sync GT from ROI CSV
-```mermaid
-graph TD
-    Start([Start: main]) --> Discover[Discover Subjects & Tasks]
-    Discover --> OuterSubj
-    
-    subgraph "Outer Loop: For each SUBJECT"
-        OuterSubj[Select Subject] --> InnerTask
-        
-        subgraph "Inner Loop: For each TASK"
-            InnerTask[Select Task] --> CheckPaths{Files Exist?}
-            
-            CheckPaths -- No --> Skip[Skip Task/Log Status]
-            CheckPaths -- Yes --> InitProc[Load Data & Memmap .dat File]
-            
-            InitProc --> LoadAnn[Load Face CSV & Apply EMA Landmark Smoothing]
-            LoadAnn --> TimeGrid[Calculate 30Hz Output Time Grid]
-            
-            TimeGrid --> FrameLoop
-            
-            subgraph "Frame Loop: Process Frames in Segment"
-                FrameLoop[Read Frame & Facial ROIs] --> Extract[Extract Thermal Values via roi_extract_by_name]
-                Extract --> SaveNative[Store Native 7.5Hz ROI Traces]
-            end
-            
-            SaveNative --> Upsample[Upsample ROI Traces to 30Hz via Cubic Spline]
-            Upsample --> LoadGT[Load PEDA and PP Contact Ground Truth]
-            LoadGT --> SyncGT[Resample & Synchronize GT to 30Hz Grid]
-            SyncGT --> ExportCSV[Write Synced CSV to StructuredStudyData]
-            ExportCSV --> GenPlot{Plot Mode Enabled?}
-            
-            GenPlot -- Yes --> Plot[Generate & Save QC Plots]
-            GenPlot -- No --> FinishTask
-            Plot --> FinishTask[Log Success & Summary Result]
-        end
-    end
-```
+## Script 6: ROI Extraction & Ground-Truth Synchronization Flow
+
+![ROI Extraction & Ground-Truth Synchronization Flow](docs/images/step_6_execution.png)
+
+---
 
 ## Dataset: SIMULATOR STUDY 1
 
